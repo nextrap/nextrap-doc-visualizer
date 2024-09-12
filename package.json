@@ -1,0 +1,56 @@
+{
+  "name": "@nextrap/doc-visualizer",
+  "version": "0.0.1",
+  "description": "",
+  "license": "proprietary",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+
+  "directories": {
+    "doc": "docs",
+    "src": "src",
+    "src.doc": "src.doc"
+  },
+  "files": [
+    "/dist",
+    "/src",
+    "/templates",
+    "/themes",
+    "/docs",
+    "/font",
+    "/elements",
+    "/sections",
+    "/_tpl",
+    "*.scss",
+    "*.json"
+  ],
+  "workspaces": [
+    "workspaces/*"
+  ],
+  "author": "",
+  "dependencies": {
+    "@kasimirjs/core": "^1.0.2",
+    "@types/node": "^20.14.12"
+  },
+  "scripts": {
+    "make.mjs": "tsc -d",
+    "build": "npm run make.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsx": "^4.10.3",
+    "typescript": "^5.5.4",
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4",
+    "css-loader": "^7.1.2",
+    "esbuild-loader": "^2.20.0",
+    "markdown-it": "^13.0.1",
+    "markdown-it-attrs": "^4.1.6",
+    "raw-loader": "^4.0.2",
+    "sass": "^1.77.8",
+    "sass-loader": "^16.0.0",
+    "style-loader": "^4.0.0"
+  }
+}
