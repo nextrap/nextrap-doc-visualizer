@@ -29,10 +29,10 @@ export class ProjectDoc {
     #selectedProjectId: string = null;
     #currentChapter: ProjectDocChapterType = null;
 
-    #projectExampleIndex = {}<string, number>;
+    #projectExampleIndex = new Map<string, number>;
 
-    #projectDocs = {}<string, ProjectDocType>;
-    #examples = {}<string, ProjectDocExampleType>;
+    #projectDocs = new Map<string, ProjectDocType>;
+    #examples = new Map<string, ProjectDocExampleType>;
 
     public selectProjectId(projectId: string) {
         this.#selectedProjectId = projectId;
@@ -77,11 +77,11 @@ export class ProjectDoc {
     }
 
 
-    public get __projectDocs() : { [key: string]: ProjectDocType }{
+    public get __projectDocs() : Map<string, ProjectDocType>{
         return this.#projectDocs;
     }
 
-    public get __examples() : { [key: string]: ProjectDocExampleType }{
+    public get __examples() : Map<string, ProjectDocExampleType>{
         return this.#examples;
 
     }
