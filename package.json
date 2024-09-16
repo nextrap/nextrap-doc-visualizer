@@ -3,13 +3,12 @@
   "version": "0.0.1",
   "description": "",
   "license": "proprietary",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "main": "./index.js",
+  "module": "./index.js",
 
   "directories": {
     "doc": "docs",
-    "src": "src",
-    "src.doc": "src.doc"
+    "src": "src"
   },
   "files": [
     "/dist",
