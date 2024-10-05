@@ -1,6 +1,6 @@
 {
   "name": "@nextrap/doc-visualizer",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "",
   "license": "proprietary",
   "main": "./index.js",
@@ -32,7 +32,7 @@
   "author": "",
   "dependencies": {
         "lit": "^3.2.0",
-    "@kasimirjs/core": "^1.0.5",
+    "@kasimirjs/core": "^1.0.9",
     "@types/node": "^20.14.12"
   },
   "scripts": {
