@@ -19,25 +19,16 @@ class PackageComponent extends LitElement {
 
   `;
 
-    async render() {
-        await ka_dom_ready();
+     render() {
+       // await ka_dom_ready();
 
         Nextrap.map((description) => {
-            this.appendChild(ka_create_element('nx-doc-visualizer', {package: description.package, slot: "ex" + description.package}));
+            this.appendChild(ka_create_element('nx-doc-visualizer', {package: description.package}));
         })
 
         return html`
             <div id="component-container">
-                ${Nextrap.map(
-                    (description) => html`
-
-
-                              ${description.examples.map(
-                                    (example) => html`
-                                        <slot .name=${"ex" + description.package}></slot>`
-                                )}
-
-                        `)}
+                <slot></slot>
             </div>
         `;
     }
