@@ -2,7 +2,6 @@ import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import {Example, Nextrap} from "../nextrap-registry";
 import {ka_create_element} from "@kasimirjs/core";
-import {ka_dom_ready} from "@kasimirjs/core";
 
 
 
