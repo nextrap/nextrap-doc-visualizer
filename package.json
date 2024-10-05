@@ -1,6 +1,6 @@
 {
   "name": "@nextrap/doc-visualizer",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "",
   "license": "proprietary",
   "main": "./index.js",
@@ -21,6 +21,7 @@
     "/sections",
     "/_tpl",
     "*.scss",
+    "*.js",
     "*.json"
   ],
   "workspaces": [
