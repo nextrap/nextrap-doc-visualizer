@@ -172,7 +172,7 @@ class PackageComponent extends LitElement {
                         <section class="example-section">
                             <h3>${example.title}</h3>
                             <p>${example.description}</p>
-                            <pre class="code-example line-numbers">${example.code.trim().split("\n").map((ex) => html`<code>${ex}</code>`)}</pre>
+                            <pre class="code-example line-numbers">${example.code.trim().split("\n").map((ex) => html`<code>${ex !== "" ? ex : html`<br>`}</code>`)}</pre>
                             <slot class="render-area" ..name=${"html1" + example.title}></slot>
                         </section>
                     `)}
