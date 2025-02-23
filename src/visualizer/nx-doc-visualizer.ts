@@ -324,15 +324,22 @@ class PackageComponent extends LitElement {
         if (this.isVisible) {
             this.clearAllSlots();
             doc.examples.forEach((example) => {
-                let e = ka_create_element("slot", {slot: "html" + example.title}, example.code);
-                e.innerHTML = example.code;
-                this.appendChild(e);
+                const slot = ka_create_element("slot", {
+                    slot: this.getHtmlSlotName(example)
+                });
+                slot.innerHTML = example.code;
+                this.appendChild(slot);
             });
 
             if (this.fullscreenExample) {
-                let e = ka_create_element("slot", {slot: "htmlfullscreen"}, this.fullscreenExample.code);
-                e.innerHTML = this.fullscreenExample.code;
-                this.appendChild(e);
+                const slotName = this.getHtmlSlotName(this.fullscreenExample)
+                const htmlSlot = this.querySelector(`slot[slot="${slotName}"]`);
+                if (!(htmlSlot instanceof HTMLElement)) {
+                    return;
+                }
+
+                const fullscreenSlot = ka_create_element("slot", {slot: "htmlfullscreen"}, [htmlSlot]);
+                this.appendChild(fullscreenSlot);
             }
         }
 
@@ -389,7 +396,7 @@ class PackageComponent extends LitElement {
                                     </svg>
                                     Fullscreen
                                 </button>
-                                <slot name=${"html" + example.title}></slot>
+                                <slot name=${this.getHtmlSlotName(example)}></slot>
                             </div>
                         </div>
                     </section>
@@ -416,5 +423,9 @@ class PackageComponent extends LitElement {
                 ` : ''}
             </section>
         `;
+    }
+
+    private getHtmlSlotName(example: Example): string {
+        return `html-${example.title}`;
     }
 }
