@@ -320,10 +320,38 @@ class PackageComponent extends LitElement {
         if (this.isVisible) {
             this.clearAllSlots();
             doc.examples.forEach((example) => {
+                const iframe = document.createElement('iframe');
+                iframe.setAttribute('frameborder', '0');
+                iframe.setAttribute('marginheight', '0');
+                iframe.setAttribute('marginwidth', '0');
+                iframe.style.width = '100%';
+
+                iframe.addEventListener('load', () => {
+                    iframe.style.height = iframe.contentWindow.document.body.scrollHeight + 'px';
+                }, {
+                    once: true
+                })
+
+                const srcdoc = `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+                        <!-- TODO: Find a proper way to make the required libraries available to the iframe -->
+                        <script src="./index.js"></script>
+                    </head>
+                    <body>
+                        ${example.code}
+                    </body>
+                    </html>
+                `
+
+                iframe.setAttribute('srcdoc', srcdoc);
                 const slot = ka_create_element("slot", {
                     slot: this.getHtmlSlotName(example)
-                });
-                slot.innerHTML = example.code;
+                }, [iframe]);
                 this.appendChild(slot);
             });
 
