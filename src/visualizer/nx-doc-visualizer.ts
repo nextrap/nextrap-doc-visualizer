@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { unsafeHTML } from 'lit/directives/unsafe-html.js';
 import { Example, Nextrap, pinnedPackage, pinPackage, setFullscreen, fullscreenComponent } from "../nextrap-registry";
 import { ka_create_element } from "@kasimirjs/core";
 
@@ -44,6 +45,7 @@ class PackageComponent extends LitElement {
 
     static styles = css`
         .package-section {
+            font-family: Arial, sans-serif;
             background: white;
             box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
             padding: 1rem 2rem;
@@ -65,10 +67,6 @@ class PackageComponent extends LitElement {
             padding: 1rem;
             border: 1px solid #eee;
             border-radius: 4px;
-        }
-
-        h2, h3, p {
-            font-family: Arial, sans-serif;
         }
 
         .code-example {
@@ -174,7 +172,6 @@ class PackageComponent extends LitElement {
 
         h4 {
             margin: 1rem 0 0.5rem;
-            font-family: Arial, sans-serif;
             color: #444;
         }
 
@@ -354,7 +351,7 @@ class PackageComponent extends LitElement {
                 ${doc.examples.map((example) => html`
                     <section class="example-section">
                         <h3 class="example-title">${example.title}</h3>
-                        <p class="example-description">${example.description}</p>
+                        <p class="example-description">${unsafeHTML(example.description)}</p>
 
                         <div>
                             <h4>Code:</h4>
