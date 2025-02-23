@@ -10,6 +10,7 @@ class PackageComponent extends LitElement {
     @state() private isVisible: boolean = true;
     @state() private fullscreenExample: Example | null = null;
     @state() private windowWidth: number = window.innerWidth;
+    @state() private windowHeight: number = window.innerHeight;
     @state() private expandedExamples: Set<string> = new Set();
 
     constructor() {
@@ -225,52 +226,47 @@ class PackageComponent extends LitElement {
             width: 100%;
             height: 100%;
             overflow: auto;
-            padding: 4rem 2rem 2rem 2rem;
             box-sizing: border-box;
         }
 
         .fullscreen-content .render-area {
             border: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .window-dimensions,
+        .close-fullscreen {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: .3rem .4rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 1001;
         }
 
         .close-fullscreen {
-            position: absolute;
-            top: 1rem;
+            bottom: 1rem;
             right: 1rem;
-            background: none;
-            border: none;
-            color: #666;
             cursor: pointer;
-            padding: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .close-fullscreen:hover {
-            color: #000;
+            border: none;
         }
 
         .example-section {
             position: relative;
         }
 
-        .window-width-display {
-            position: fixed;
+        .window-dimensions {
             bottom: 1rem;
             left: 1rem;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 14px;
-            z-index: 1001;
         }
     `;
 
     private handleResize = () => {
         this.windowWidth = window.innerWidth;
+        this.windowHeight = window.innerHeight;
     }
 
     private handlePin() {
@@ -406,17 +402,13 @@ class PackageComponent extends LitElement {
                     <div class="fullscreen-overlay" @click=${(e: Event) => e.target === e.currentTarget && this.exitFullscreen()}>
                         <div class="fullscreen-content">
                             <button class="close-fullscreen" @click=${this.exitFullscreen}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                                Close
+                                Close (Esc)
                             </button>
                             <div class="render-area">
                                 <slot name="htmlfullscreen"></slot>
                             </div>
-                            <div class="window-width-display">
-                                Width: ${this.windowWidth}px
+                            <div class="window-dimensions" title="(width x height)">
+                                ${this.windowWidth}x${this.windowHeight}
                             </div>
                         </div>
                     </div>
