@@ -1,6 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import { Nextrap, triggerInitialState } from "../nextrap-registry";
+import { Nextrap } from "../nextrap-registry";
 import { ka_create_element } from "@kasimirjs/core";
 import { ka_dom_ready } from "@kasimirjs/core/src/await/dom-ready";
 
@@ -20,9 +20,7 @@ class PackageListComponent extends LitElement {
             this.appendChild(ka_create_element('nx-doc-visualizer', {package: description.package}));
         });
 
-        setTimeout(() => {
-            triggerInitialState();
-        }, 0);
+        // Removed triggerInitialState call
     }
 
     render() {

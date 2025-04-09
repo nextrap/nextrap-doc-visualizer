@@ -1,48 +1,99 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { unsafeHTML } from 'lit/directives/unsafe-html.js';
-import { Example, Nextrap, pinnedPackage, pinPackage, setFullscreen, fullscreenComponent } from "../nextrap-registry";
+import { Example, Nextrap, pinnedPackage, togglePinPackage } from "../nextrap-registry";
 import { ka_create_element } from "@kasimirjs/core";
 
 @customElement('nx-doc-visualizer')
 class PackageComponent extends LitElement {
     @property({ type: String }) package = "undefined";
     @state() private isVisible: boolean = true;
-    @state() private fullscreenExample: Example | null = null;
     @state() private windowWidth: number = window.innerWidth;
     @state() private windowHeight: number = window.innerHeight;
     @state() private expandedExamples: Set<string> = new Set();
 
+    private intersectionObserver: IntersectionObserver | null = null;
+
     constructor() {
         super();
+        window.addEventListener('resize', this.handleResize);
 
         window.addEventListener('package-pinned', ((e: CustomEvent) => {
             this.isVisible = !e.detail.package || e.detail.package === this.package;
-            this.requestUpdate();
         }) as EventListener);
+    }
 
-        window.addEventListener('fullscreen-changed', ((e: CustomEvent) => {
-            if (e.detail && e.detail.package === this.package) {
-                const doc = Nextrap.find((description) => description.package === this.package);
-                if (doc) {
-                    const example = doc.examples.find(ex => ex.title === e.detail.example);
-                    if (example) {
-                        this.setFullscreenState(example);
+    connectedCallback() {
+        super.connectedCallback();
+        this.isVisible = !pinnedPackage || pinnedPackage === this.package;
+        this.setupIntersectionObserver();
+    }
+
+    disconnectedCallback() {
+        super.disconnectedCallback();
+        window.removeEventListener('resize', this.handleResize);
+        if (this.intersectionObserver) {
+            this.intersectionObserver.disconnect();
+        }
+        this.clearAllSlots();
+    }
+
+    firstUpdated() {
+        this.observePlaceholders();
+    }
+
+    updated(changedProperties: Map<string | number | symbol, unknown>) {
+        super.updated(changedProperties);
+        if (changedProperties.has('package') || changedProperties.has('isVisible')) {
+            if (this.intersectionObserver) {
+                this.intersectionObserver.disconnect();
+            }
+            this.setupIntersectionObserver();
+            this.observePlaceholders();
+        }
+    }
+
+
+    private setupIntersectionObserver() {
+        const options = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.1
+        };
+
+        this.intersectionObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const placeholder = entry.target as HTMLElement;
+                    const iframeSrc = placeholder.dataset.iframeSrc;
+
+                    if (iframeSrc) {
+                        const iframe = document.createElement('iframe');
+                        iframe.src = iframeSrc;
+                        iframe.style.width = '100%';
+                        iframe.style.height = '200px';
+                        iframe.style.border = 'none';
+                        iframe.setAttribute('frameborder', '0');
+                        iframe.setAttribute('title', `Example: ${placeholder.dataset.exampleTitle || 'Component'}`);
+                        iframe.setAttribute('loading', 'lazy');
+
+                        placeholder.parentNode?.replaceChild(iframe, placeholder);
+                        observer.unobserve(placeholder);
                     }
                 }
-            } else if (this.fullscreenExample) {
-                this.exitFullscreen();
-            }
-        }) as EventListener);
-
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.fullscreenExample) {
-                this.exitFullscreen();
-            }
-        });
-
-        window.addEventListener('resize', this.handleResize);
+            });
+        }, options);
     }
+
+    private observePlaceholders() {
+        if (!this.intersectionObserver) return;
+
+        const placeholders = this.shadowRoot?.querySelectorAll('.iframe-placeholder');
+        placeholders?.forEach(placeholder => {
+            this.intersectionObserver?.observe(placeholder);
+        });
+    }
+
 
     static styles = css`
         .package-section {
@@ -51,16 +102,31 @@ class PackageComponent extends LitElement {
             box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .15);
             padding: 1rem 2rem;
             margin-bottom: 2rem;
+            transition: opacity 0.3s ease-in-out;
         }
 
         .package-section.hidden {
-            display: none;
+            opacity: 0;
+            pointer-events: none;
+            height: 0;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            border: none;
+            box-shadow: none;
         }
 
         .package-header {
             border-bottom: 1px solid #eee;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .package-header h2 {
+             margin: 0;
         }
 
         .example-section {
@@ -68,6 +134,7 @@ class PackageComponent extends LitElement {
             padding: 1rem;
             border: 1px solid #eee;
             border-radius: 4px;
+            position: relative;
         }
 
         .code-example {
@@ -118,6 +185,7 @@ class PackageComponent extends LitElement {
             border: 1px solid #ddd;
             border-radius: 4px;
             background: #fff;
+            position: relative;
         }
 
         .line-numbers {
@@ -145,21 +213,6 @@ class PackageComponent extends LitElement {
             left: 0;
         }
 
-        .pin-button {
-            float: right;
-            padding: 5px 10px;
-            background: #f0f0f0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-left: 10px;
-            font-size: 14px;
-        }
-
-        .pin-button:hover {
-            background: #e0e0e0;
-        }
-
         .example-title {
             margin: 0;
             padding-bottom: 0.5rem;
@@ -176,7 +229,32 @@ class PackageComponent extends LitElement {
             color: #444;
         }
 
-        .fullscreen-button {
+        .iframe-placeholder {
+            border: 1px dashed #ccc;
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #888;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .pin-button {
+            padding: 5px 10px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .pin-button:hover {
+            background: #e0e0e0;
+        }
+
+        .preview-button {
             position: absolute;
             top: 1rem;
             right: 1rem;
@@ -191,76 +269,12 @@ class PackageComponent extends LitElement {
             gap: 5px;
             z-index: 50;
         }
-
-        .fullscreen-button:hover {
+        .preview-button:hover {
             background: #e0e0e0;
         }
-
-        .fullscreen-button svg {
+        .preview-button svg {
             width: 16px;
             height: 16px;
-        }
-
-        .render-area {
-            position: relative;
-        }
-
-        .fullscreen-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            box-sizing: border-box;
-        }
-
-        .fullscreen-content {
-            background: white;
-            position: relative;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            box-sizing: border-box;
-        }
-
-        .fullscreen-content .render-area {
-            border: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .window-dimensions,
-        .close-fullscreen {
-            position: fixed;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: .3rem .4rem;
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 12px;
-            z-index: 1001;
-        }
-
-        .close-fullscreen {
-            bottom: 1rem;
-            right: 1rem;
-            cursor: pointer;
-            border: none;
-        }
-
-        .example-section {
-            position: relative;
-        }
-
-        .window-dimensions {
-            bottom: 1rem;
-            left: 1rem;
         }
     `;
 
@@ -270,12 +284,20 @@ class PackageComponent extends LitElement {
     }
 
     private handlePin() {
-        if (pinnedPackage === this.package) {
-            pinPackage(null);
-        } else {
-            pinPackage(this.package);
+        if (this.package) {
+            togglePinPackage(this.package);
         }
     }
+
+    private showIsolatedPreview(exampleTitle: string) {
+        if (this.package) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('preview', this.package);
+            url.searchParams.set('example', exampleTitle);
+            window.location.href = url.toString();
+        }
+    }
+
 
     private clearAllSlots() {
         const slots = this.querySelectorAll(`slot[slot^="html"]`);
@@ -286,29 +308,6 @@ class PackageComponent extends LitElement {
         });
     }
 
-    private setFullscreenState(example: Example) {
-        this.fullscreenExample = example;
-        document.body.style.overflow = 'hidden';
-        this.setAttribute('fullscreen', '');
-    }
-
-    private showFullscreen(example: Example) {
-        this.setFullscreenState(example);
-        setFullscreen(this.package, example.title);
-    }
-
-    private exitFullscreen() {
-        document.body.style.overflow = '';
-        this.removeAttribute('fullscreen');
-        this.fullscreenExample = null;
-        setFullscreen(null, null);
-    }
-
-    disconnectedCallback() {
-        super.disconnectedCallback();
-        window.removeEventListener('resize', this.handleResize);
-        this.clearAllSlots();
-    }
 
     render() {
         let doc = Nextrap.find((description) => description.package === this.package);
@@ -320,36 +319,25 @@ class PackageComponent extends LitElement {
         if (this.isVisible) {
             this.clearAllSlots();
             doc.examples.forEach((example) => {
-                const slot = ka_create_element("slot", {
-                    slot: this.getHtmlSlotName(example)
-                });
-                slot.innerHTML = example.code;
-                this.appendChild(slot);
-            });
-
-            if (this.fullscreenExample) {
-                const slotName = this.getHtmlSlotName(this.fullscreenExample)
-                const htmlSlot = this.querySelector(`slot[slot="${slotName}"]`);
-                if (!(htmlSlot instanceof HTMLElement)) {
-                    return;
+                if (!example.renderAsIframe) {
+                    const slot = ka_create_element("slot", {
+                        slot: this.getHtmlSlotName(example)
+                    });
+                    slot.innerHTML = example.code;
+                    this.appendChild(slot);
                 }
-
-                const fullscreenSlot = ka_create_element("slot", {slot: "htmlfullscreen"}, [htmlSlot]);
-                this.appendChild(fullscreenSlot);
-            }
+            });
         }
 
         return html`
             <section class="package-section ${this.isVisible ? '' : 'hidden'}">
                 <div class="package-header">
-                    <h2>
-                        ${doc.title}
-                        <button class="pin-button" @click=${this.handlePin}>
-                            ${pinnedPackage === this.package ? 'Unpin' : 'Pin'}
-                        </button>
-                    </h2>
-                    <p>${doc.description}</p>
+                    <h2>${doc.title}</h2>
+                    <button class="pin-button" @click=${this.handlePin}>
+                        ${pinnedPackage === this.package ? 'Unpin' : 'Pin'}
+                    </button>
                 </div>
+                <p>${doc.description}</p>
 
                 ${doc.examples.map((example) => html`
                     <section class="example-section">
@@ -367,13 +355,13 @@ class PackageComponent extends LitElement {
                                 <button
                                     class="expand-code-button"
                                     @click=${() => {
-                                if (this.expandedExamples.has(example.title)) {
-                                    this.expandedExamples.delete(example.title);
-                                } else {
-                                    this.expandedExamples.add(example.title);
-                                }
-                                this.requestUpdate();
-                            }}
+                                        if (this.expandedExamples.has(example.title)) {
+                                            this.expandedExamples.delete(example.title);
+                                        } else {
+                                            this.expandedExamples.add(example.title);
+                                        }
+                                        this.requestUpdate();
+                                    }}
                                 >
                                     ${this.expandedExamples.has(example.title) ? 'Collapse Code' : 'Expand Code'}
                                 </button>
@@ -384,40 +372,38 @@ class PackageComponent extends LitElement {
                             <h4>Result:</h4>
                             <div class="render-area">
                                 <button
-                                    class="fullscreen-button"
-                                    @click=${() => this.showFullscreen(example)}
+                                    class="preview-button"
+                                    @click=${() => this.showIsolatedPreview(example.title)}
+                                    title="Open isolated preview"
                                 >
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
                                     </svg>
-                                    Fullscreen
+                                    Preview
                                 </button>
-                                <slot name=${this.getHtmlSlotName(example)}></slot>
+
+                                ${example.renderAsIframe
+                                    ? html`
+                                        <div
+                                            class="iframe-placeholder"
+                                            data-iframe-src="/render-component?package=${encodeURIComponent(this.package || '')}&example=${encodeURIComponent(example.title)}"
+                                            data-package=${this.package || ''}
+                                            data-example-title=${example.title}
+                                        >
+                                            <span>Loading example in iframe...</span>
+                                        </div>
+                                      `
+                                    : html`<slot name=${this.getHtmlSlotName(example)}></slot>`
+                                }
                             </div>
                         </div>
                     </section>
                 `)}
-
-                ${this.fullscreenExample ? html`
-                    <div class="fullscreen-overlay" @click=${(e: Event) => e.target === e.currentTarget && this.exitFullscreen()}>
-                        <div class="fullscreen-content">
-                            <button class="close-fullscreen" @click=${this.exitFullscreen}>
-                                Close (Esc)
-                            </button>
-                            <div class="render-area">
-                                <slot name="htmlfullscreen"></slot>
-                            </div>
-                            <div class="window-dimensions" title="(width x height)">
-                                ${this.windowWidth}x${this.windowHeight}
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
             </section>
         `;
     }
 
     private getHtmlSlotName(example: Example): string {
-        return `html-${example.title}`;
+        return `html-${example.title.replace(/\s+/g, '-')}`;
     }
 }

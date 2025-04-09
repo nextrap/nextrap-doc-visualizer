@@ -4,6 +4,7 @@ export type Example = {
     lang: "html"|"js"|"ts"|"css";
     code: string;
     html?: string|null;
+    renderAsIframe?: boolean;
 }
 
 export type Description = {
@@ -15,90 +16,39 @@ export type Description = {
 
 export const Nextrap: Description[] = [];
 
-const params = new URLSearchParams(window.location.search);
-export let pinnedPackage: string | null = params.get('pin');
-export let fullscreenComponent: { package: string, example: string } | null = null;
-
-const fsParam = params.get('fs');
-if (fsParam) {
-    const [pkg, ...exampleParts] = fsParam.split('--');
-    fullscreenComponent = {
-        package: pkg,
-        example: exampleParts.join('-')
-    };
-}
-
-function updateUrlParameters() {
-    const params = new URLSearchParams(window.location.search);
-
-    if (pinnedPackage) {
-        params.set('pin', pinnedPackage);
-    } else {
-        params.delete('pin');
-    }
-
-    if (fullscreenComponent) {
-        params.set('fs', `${fullscreenComponent.package}--${fullscreenComponent.example}`);
-    } else {
-        params.delete('fs');
-    }
-
-    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-    window.history.pushState({}, '', newUrl);
-}
-
-export function triggerInitialState() {
-    if (pinnedPackage) {
-        window.dispatchEvent(new CustomEvent('package-pinned', {
-            detail: { package: pinnedPackage }
-        }));
-    }
-
-    if (fullscreenComponent) {
-        window.dispatchEvent(new CustomEvent('fullscreen-changed', {
-            detail: fullscreenComponent
-        }));
-    }
-}
+export let pinnedPackage: string | null = null;
 
 export function registerComponent(component: Description) {
     Nextrap.push(component);
 }
+export function togglePinPackage(packageName: string) {
+    if (pinnedPackage === packageName) {
+        pinnedPackage = null;
+    } else {
+        pinnedPackage = packageName;
+    }
 
-export function pinPackage(packageName: string | null) {
-    pinnedPackage = packageName;
-    updateUrlParameters();
+    const url = new URL(window.location.href);
+    if (pinnedPackage) {
+        url.searchParams.set('pin', pinnedPackage);
+    } else {
+        url.searchParams.delete('pin');
+    }
+    window.history.pushState({ pinnedPackage: pinnedPackage }, '', url.toString());
+
     window.dispatchEvent(new CustomEvent('package-pinned', {
-        detail: { package: packageName }
+        detail: { package: pinnedPackage }
     }));
 }
 
-export function setFullscreen(packageName: string | null, exampleTitle: string | null) {
-    if (packageName && exampleTitle) {
-        fullscreenComponent = { package: packageName, example: exampleTitle };
-    } else {
-        fullscreenComponent = null;
-    }
-    updateUrlParameters();
-    window.dispatchEvent(new CustomEvent('fullscreen-changed', {
-        detail: fullscreenComponent
-    }));
-}
-
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', (event) => {
     const params = new URLSearchParams(window.location.search);
-    pinnedPackage = params.get('pin');
+    const pinFromUrl = params.get('pin');
 
-    const fsParam = params.get('fs');
-    if (fsParam) {
-        const [pkg, ...exampleParts] = fsParam.split('--');
-        fullscreenComponent = {
-            package: pkg,
-            example: exampleParts.join('-')
-        };
-    } else {
-        fullscreenComponent = null;
+    if (pinnedPackage !== pinFromUrl) {
+        pinnedPackage = pinFromUrl;
+        window.dispatchEvent(new CustomEvent('package-pinned', {
+            detail: { package: pinnedPackage }
+        }));
     }
-
-    triggerInitialState();
 });
